@@ -145,6 +145,7 @@ class DeepBeliefNet():
             for key,item in reversed(self.rbm_stack.items()):
                 if key!='pen+lbl--top': 
                     vis,v=item.get_v_given_h_dir(v)
+                    
 
             records.append( [ ax.imshow(vis.reshape(self.image_size), cmap="bwr", vmin=0, vmax=1, animated=True, interpolation=None) ] )
             
@@ -196,7 +197,7 @@ class DeepBeliefNet():
             CD-1 training for hid--pen 
             """  
             
-            _, input1 = self.rbm_stack['vis--hid'].get_h_given_v_dir(vis_trainset)
+            input1,_ = self.rbm_stack['vis--hid'].get_h_given_v_dir(vis_trainset)
             if l<2:          
                 self.rbm_stack['hid--pen'].cd1(input1, n_iterations)          
                 self.savetofile_rbm(loc="trained_rbm",name="hid--pen")   
@@ -206,7 +207,7 @@ class DeepBeliefNet():
             """ 
             CD-1 training for pen+lbl--top 
             """
-            _, input2 = self.rbm_stack['hid--pen'].get_h_given_v_dir(input1)
+            input2,_ = self.rbm_stack['hid--pen'].get_h_given_v_dir(input1)
             if l<3:
                 #self.rbm_stack['pen+lbl--top'].cd1_labels(input2, lbl_trainset, n_iterations)
                 self.rbm_stack['pen+lbl--top'].cd1(np.concatenate([input2,lbl_trainset],axis=1), n_iterations)

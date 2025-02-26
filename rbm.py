@@ -54,7 +54,7 @@ class RestrictedBoltzmannMachine():
         
         self.weight_h_to_v = None
 
-        self.learning_rate = 0.001
+        self.learning_rate = 0.01
         
         self.momentum = 0.0
 
@@ -345,7 +345,7 @@ class RestrictedBoltzmannMachine():
         # [TODO TASK 4.2] perform same computation as the function 'get_h_given_v' but with directed connections (replace the zeros below) 
         p_h_given_v = sigmoid(self.bias_h + visible_minibatch @ self.weight_v_to_h)
         h = sample_binary(p_h_given_v)
-        return p_h_given_v, h
+        return p_h_given_v,h
 
 
     def get_v_given_h_dir(self,hidden_minibatch):
@@ -388,7 +388,7 @@ class RestrictedBoltzmannMachine():
             p_v_given_h = sigmoid(self.bias_v + hidden_minibatch @ self.weight_h_to_v)
             v = sample_binary(p_v_given_h)
             
-        return v,p_v_given_h
+        return p_v_given_h,v
         
     def update_generate_params(self,inps,trgs,preds):
         
