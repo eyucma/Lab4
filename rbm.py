@@ -6,7 +6,7 @@ class RestrictedBoltzmannMachine():
     '''
     For more details : A Practical Guide to Training Restricted Boltzmann Machines https://www.cs.toronto.edu/~hinton/absps/guideTR.pdf
     '''
-    def __init__(self, ndim_visible, ndim_hidden, is_bottom=False, image_size=[28,28], is_top=False, n_labels=10, batch_size=10):
+    def __init__(self, ndim_visible, ndim_hidden, is_bottom=False, image_size=[28,28], is_top=False, n_labels=10, batch_size=10, decay=0):
 
         """
         
@@ -54,9 +54,13 @@ class RestrictedBoltzmannMachine():
         
         self.weight_h_to_v = None
 
-        self.learning_rate = 0.00001
+        self.learning_rate = 0.001
         
-        self.momentum = 0.5
+        self.momentum = 0.0
+
+        self.dampening=0
+
+        self.decay=decay
 
         self.print_period = 200
         
@@ -98,7 +102,7 @@ class RestrictedBoltzmannMachine():
 
 
         # [TODO TASK 4.1] update the parameters using function 'update_params'
-            self.update_params(batch, h_0, p_v_given_h_1, p_h_given_v_1)
+            self.update_params(batch, p_h_given_v_0, p_v_given_h_1, p_h_given_v_1)
             
             # visualize once in a while when visible layer is input images
             '''
@@ -128,7 +132,8 @@ class RestrictedBoltzmannMachine():
                 p_v_given_h_1, v_1 = self.get_v_given_h(h_0)
                 #errors.append(np.linalg.norm(p_v_given_h_1 - visible_trainset) / n_samples)
                 #energy.append(-np.diag(p_v_given_h_1@self.delta_weight_vh@h_1.T).mean())
-                print ("iteration=%7d recon_loss=%4.4f"%(it, np.linalg.norm(p_v_given_h_1 - visible_trainset) / n_samples))
+                print ("iteration=%7d recon_loss=%4.4f"%(it, np.linalg.norm(p_v_given_h_1 - visible_trainset) / n_samples)+" dw_max=%4.4f"%(self.delta_weight_vh.max())+
+                        " dw_min=%4.4f"%(self.delta_weight_vh.min())+" w_max=%4.4f"%(np.abs(self.weight_vh).max()))
         
         '''
         plt.plot(errors)
@@ -233,13 +238,13 @@ class RestrictedBoltzmannMachine():
 
         batch_size = v_0.shape[0]
 
-        self.delta_bias_v += self.learning_rate * (v_0 - v_k).mean(axis=0)
-        self.delta_weight_vh += self.learning_rate * (v_0.T @ h_0 - v_k.T @ h_k) / batch_size
-        self.delta_bias_h += self.learning_rate * (h_0 - h_k).mean(axis=0)
+        self.delta_bias_v = self.learning_rate*(self.momentum*self.delta_bias_v+(1-self.dampening)* (v_0 - v_k).mean(axis=0))
+        self.delta_weight_vh = self.learning_rate *(self.momentum*self.delta_weight_vh+(1-self.dampening)* (v_0.T @ h_0 - v_k.T @ h_k) / batch_size)
+        self.delta_bias_h = self.learning_rate *(self.momentum*self.delta_bias_h+(1-self.dampening)* (h_0 - h_k).mean(axis=0))
         
-        self.bias_v += self.delta_bias_v
-        self.weight_vh += self.delta_weight_vh
-        self.bias_h += self.delta_bias_h
+        self.bias_v += self.delta_bias_v-self.decay*self.bias_v*self.learning_rate
+        self.weight_vh += self.delta_weight_vh-self.weight_vh*self.decay*self.learning_rate
+        self.bias_h += self.delta_bias_h-self.decay*self.bias_h*self.learning_rate
         
         return
 
@@ -262,7 +267,7 @@ class RestrictedBoltzmannMachine():
 
         p_h_given_v = sigmoid(self.bias_h + visible_minibatch @ self.weight_vh)
 
-        h = np.random.binomial(1, p_h_given_v)
+        h = sample_binary(p_h_given_v)
         
         return p_h_given_v, h
 
